@@ -70,11 +70,12 @@ This command will spin up the following containers:
 - `notification_pgadmin` (localhost:5050) - Web UI for PostgreSQL
 
 ### Monitoring Interfaces
-- **Swagger API Docs**: http://localhost:8080/swagger/index.html
-- **Kafka UI**: http://localhost:8081
-- **pgAdmin**: http://localhost:5050 (admin@admin.com / admin)
-- **API Metrics**: http://localhost:8080/metrics
-- **Consumer Metrics**: http://localhost:8082/metrics
+- **Swagger API Docs**: [http://localhost:8080/swagger/index.html](http://localhost:8080/swagger/index.html)
+- **Kafka UI**: [http://localhost:8081](http://localhost:8081)
+- **pgAdmin**: [http://localhost:5050](http://localhost:5050) (admin@admin.com / admin)
+- **API Metrics (Prometheus)**: [http://localhost:8080/metrics](http://localhost:8080/metrics)
+- **Consumer Metrics (Prometheus)**: [http://localhost:8082/metrics](http://localhost:8082/metrics)
+- **Webhook Inspector (Live Logs)**: [https://webhook.site/#!/view/6762e0e1-47a2-492d-855e-fb974baca2b6/23b59863-146f-4294-b6cf-76fa2de34e52/1](https://webhook.site/#!/view/6762e0e1-47a2-492d-855e-fb974baca2b6/23b59863-146f-4294-b6cf-76fa2de34e52/1)
 
 ## 📡 API Endpoints
 
