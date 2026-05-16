@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"notification-system/internal/domain/notification"
 	"notification-system/internal/infrastructure/cache"
 	"notification-system/internal/infrastructure/messaging"
+	"notification-system/internal/infrastructure/observability"
 )
 
 type Worker struct {
@@ -31,50 +32,64 @@ func NewWorker(repo notification.Repository, redisClient *cache.RedisClient, web
 }
 
 func (w *Worker) ProcessMessage(ctx context.Context, msg []byte) error {
+	start := time.Now()
+
 	var event messaging.NotificationEvent
 	if err := json.Unmarshal(msg, &event); err != nil {
+		slog.Error("Invalid message format", "error", err)
 		return fmt.Errorf("invalid message format: %w", err)
 	}
+
+	// For structured logging, we attach the event ID
+	logger := slog.With("notification_id", event.ID, "priority", event.Priority)
 
 	// 1. Check Idempotency
 	isNew, err := w.redis.SetIdempotencyKey(ctx, event.ID)
 	if err != nil {
+		logger.Error("Failed to check idempotency", "error", err)
 		return fmt.Errorf("failed to check idempotency: %w", err)
 	}
 	if !isNew {
-		log.Printf("Notification %s was already processed, skipping", event.ID)
+		logger.Info("Notification was already processed, skipping")
 		return nil
 	}
 
 	// 2. Fetch Notification Details from DB
 	n, err := w.repo.GetByID(ctx, event.ID)
 	if err != nil {
+		logger.Error("Failed to get notification from DB", "error", err)
 		return fmt.Errorf("failed to get notification from db: %w", err)
 	}
 
+	// Instrument latency at the end
+	defer func() {
+		observability.NotificationLatency.WithLabelValues(string(n.Channel)).Observe(time.Since(start).Seconds())
+	}()
+
 	if n.Status == notification.StatusCanceled {
-		log.Printf("Notification %s is canceled, skipping", event.ID)
+		logger.Info("Notification is canceled, skipping")
 		return nil
 	}
 
 	// 3. Rate Limiting Check
 	allowed, err := w.redis.AllowRateLimit(ctx, string(n.Channel), 100)
 	if err != nil {
+		logger.Error("Failed to check rate limit", "error", err)
 		return fmt.Errorf("failed to check rate limit: %w", err)
 	}
 	if !allowed {
-		// Rate limit exceeded, we should ideally push back to queue or retry later.
-		// Setting status to Retry so it can be handled by a cron/retry mechanism.
+		observability.RateLimitHits.WithLabelValues(string(n.Channel)).Inc()
+		logger.Warn("Rate limit exceeded", "channel", n.Channel)
+
 		n.Status = notification.StatusRetry
 		_ = w.repo.Update(ctx, n)
-		return fmt.Errorf("rate limit exceeded for channel %s, notification %s set to retry", n.Channel, n.ID)
+		return fmt.Errorf("rate limit exceeded for channel %s", n.Channel)
 	}
 
-	// Update status to processing
 	n.Status = notification.StatusProcessing
 	_ = w.repo.Update(ctx, n)
 
-	// 4. Send to Webhook (Simulate external provider)
+	// 4. Send to Webhook
 	payload := map[string]string{
 		"to":      n.Recipient,
 		"channel": string(n.Channel),
@@ -85,7 +100,6 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg []byte) error {
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, w.webhookURL, bytes.NewBuffer(jsonPayload))
 	req.Header.Set("Content-Type", "application/json")
 
-	// Retry logic variables
 	maxRetries := 3
 	var resp *http.Response
 	var deliveryErr error
@@ -93,9 +107,9 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg []byte) error {
 	for i := 0; i < maxRetries; i++ {
 		resp, deliveryErr = w.httpClient.Do(req)
 		if deliveryErr == nil && (resp.StatusCode == http.StatusAccepted || resp.StatusCode == http.StatusOK) {
-			break // Success
+			break
 		}
-		log.Printf("Webhook attempt %d failed for notification %s. Retrying...", i+1, n.ID)
+		logger.Warn("Webhook attempt failed", "attempt", i+1, "error", deliveryErr)
 		time.Sleep(time.Duration(2<<i) * time.Second) // Exponential backoff
 	}
 
@@ -106,13 +120,16 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg []byte) error {
 	// Determine final status
 	if deliveryErr == nil && resp != nil && (resp.StatusCode == http.StatusAccepted || resp.StatusCode == http.StatusOK) {
 		n.Status = notification.StatusSent
-		log.Printf("Notification %s delivered successfully", n.ID)
+		logger.Info("Notification delivered successfully")
+		observability.NotificationsProcessed.WithLabelValues(string(n.Channel), "success").Inc()
 	} else {
 		n.Status = notification.StatusFailed
-		log.Printf("Notification %s delivery failed after %d retries", n.ID, maxRetries)
+		logger.Error("Notification delivery failed after retries", "max_retries", maxRetries)
+		observability.NotificationsProcessed.WithLabelValues(string(n.Channel), "failed").Inc()
 	}
 
 	if err := w.repo.Update(ctx, n); err != nil {
+		logger.Error("Failed to update final status", "error", err)
 		return fmt.Errorf("failed to update final status: %w", err)
 	}
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
@@ -23,6 +24,10 @@ import (
 // @BasePath        /
 
 func main() {
+	// Initialize Structured Logging
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
 	// Initialize Database (Use environment variables in a real app)
 	dsn := "host=localhost user=postgres password=postgres dbname=notification_db port=5432 sslmode=disable TimeZone=UTC"
 	// Change host to postgres if running inside docker-compose
@@ -35,6 +40,7 @@ func main() {
 		if err := database.Migrate(db); err != nil {
 			log.Fatalf("Migration failed: %v", err)
 		}
+		handler.HealthDB = db
 	}
 
 	// Initialize Kafka Producer
@@ -63,6 +69,9 @@ func main() {
 
 	// Swagger documentation route
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Metrics route
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// API routes group
 	v1 := r.Group("/api/v1")

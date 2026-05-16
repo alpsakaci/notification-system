@@ -3,9 +3,13 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"notification-system/internal/application/consumer"
 	"notification-system/internal/infrastructure/cache"
@@ -14,7 +18,11 @@ import (
 )
 
 func main() {
-	log.Println("Notification Consumer starting...")
+	// Initialize Structured Logging
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
+	slog.Info("Notification Consumer starting...")
 
 	// Initialize Database (Use environment variables in a real app)
 	dsn := "host=localhost user=postgres password=postgres dbname=notification_db port=5432 sslmode=disable TimeZone=UTC"
@@ -59,16 +67,29 @@ func main() {
 		}(c, topic)
 	}
 
+	// Start Metrics and Health Server
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("{\"status\": \"healthy\", \"service\": \"consumer\"}"))
+		})
+		slog.Info("Starting metrics server on :8081")
+		if err := http.ListenAndServe(":8081", nil); err != nil {
+			slog.Error("Metrics server failed", "error", err)
+		}
+	}()
+
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Notification Consumer shutting down...")
+	slog.Info("Notification Consumer shutting down...")
 	cancel()
 
 	for _, c := range consumers {
 		_ = c.Close()
 	}
-	log.Println("Shutdown complete")
+	slog.Info("Shutdown complete")
 }
