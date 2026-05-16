@@ -72,7 +72,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	for _, topic := range topics {
-		c := messaging.NewKafkaConsumer(brokers, groupID, topic)
+		specificGroupID := groupID + "-" + topic
+		c := messaging.NewKafkaConsumer(brokers, specificGroupID, topic)
 		consumers = append(consumers, c)
 		
 		go func(kafkaConsumer *messaging.KafkaConsumer, t string) {

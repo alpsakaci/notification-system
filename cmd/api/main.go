@@ -18,6 +18,7 @@ import (
 	"notification-system/internal/infrastructure/database"
 	"notification-system/internal/infrastructure/messaging"
 	"notification-system/internal/router/api/handler"
+	"notification-system/internal/router/middleware"
 )
 
 // @title           Notification System API
@@ -99,12 +100,16 @@ func main() {
 	{
 		v1.GET("/health", healthHandler.Health)
 
-		// Notification routes
-		v1.POST("/notifications", notiHandler.Create)
-		v1.POST("/notifications/batch", notiHandler.BatchCreate)
-		v1.GET("/notifications/:id", notiHandler.Get)
-		v1.PUT("/notifications/:id/cancel", notiHandler.Cancel)
-		v1.GET("/notifications", notiHandler.List)
+		// Notification routes - Apply Rate Limiting here (e.g. max 100 requests per second per IP)
+		notifGroup := v1.Group("/notifications")
+		notifGroup.Use(middleware.RateLimitMiddleware(redisClient, 100))
+		{
+			notifGroup.POST("", notiHandler.Create)
+			notifGroup.POST("/batch", notiHandler.BatchCreate)
+			notifGroup.GET("/:id", notiHandler.Get)
+			notifGroup.PUT("/:id/cancel", notiHandler.Cancel)
+			notifGroup.GET("", notiHandler.List)
+		}
 	}
 
 	log.Println("Server is running at http://0.0.0.0:8080")
