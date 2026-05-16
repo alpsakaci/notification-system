@@ -128,3 +128,16 @@ You will see 100 requests succeed (`HTTP 202`), and the rest will be blocked (`H
 
 ## 📜 Environment Variables
 - `WEBHOOK_URL`: The destination URL where the Consumer will POST the notification payloads. Edit `docker-compose.yml` to set your actual webhook destination (e.g., webhook.site).
+
+## 🌐 Live Server / Deployment
+This project is currently deployed and running live on the following server: **`37.148.213.87`**
+
+> ⚠️ **Note on Server Capacity:** This live demo is hosted on a small, low-tier server. Due to hardware constraints, the system may occasionally operate slowly or experience crashes if subjected to heavy load testing or extreme rate limit spikes. Please be gentle! 😅
+
+You can access the live monitoring and API interfaces using the links below:
+- **Swagger API Docs**: [http://37.148.213.87:8080/swagger/index.html](http://37.148.213.87:8080/swagger/index.html)
+- **Kafka UI**: [http://37.148.213.87:8081](http://37.148.213.87:8081)
+- **pgAdmin**: [http://37.148.213.87:5050](http://37.148.213.87:5050)
+- **API Metrics**: [http://37.148.213.87:8080/metrics](http://37.148.213.87:8080/metrics)
+- **Consumer Metrics**: [http://37.148.213.87:8082/metrics](http://37.148.213.87:8082/metrics)
+- **Webhook Inspector (Live Logs)**: [https://webhook.site/#!/view/6762e0e1-47a2-492d-855e-fb974baca2b6/23b59863-146f-4294-b6cf-76fa2de34e52/1](https://webhook.site/#!/view/6762e0e1-47a2-492d-855e-fb974baca2b6/23b59863-146f-4294-b6cf-76fa2de34e52/1)
