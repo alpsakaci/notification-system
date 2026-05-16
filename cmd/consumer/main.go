@@ -84,7 +84,7 @@ func main() {
 		http.Handle("/metrics", promhttp.Handler())
 		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("{\"status\": \"healthy\", \"service\": \"consumer\"}"))
+			_, _ = w.Write([]byte("{\"status\": \"healthy\", \"service\": \"consumer\"}"))
 		})
 		slog.Info("Starting metrics server on :8081")
 		if err := http.ListenAndServe(":8081", nil); err != nil {

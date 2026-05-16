@@ -19,12 +19,12 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25'
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.58
+          version: v1.64
           args: --timeout=5m
 
   test:
@@ -37,10 +37,14 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25'
 
       - name: Run Unit Tests
-        run: make test
+        run: |
+          go test -v ./... -coverprofile=coverage.raw.out
+          cat coverage.raw.out | grep -v "/cmd/" | grep -v "/docs" | grep -v "/internal/infrastructure" > coverage.out
+          go tool cover -html=coverage.out -o coverage.html
+          rm coverage.raw.out
 
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
