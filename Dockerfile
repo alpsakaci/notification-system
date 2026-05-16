@@ -16,8 +16,9 @@ RUN go mod download
 # Copy the source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/app main.go
+# Build the applications
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/api cmd/api/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/consumer cmd/consumer/main.go
 
 # Stage 2: Create a minimal image
 FROM alpine:latest
@@ -27,11 +28,11 @@ RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /root/
 
-# Copy the pre-built binary file from the previous stage
-COPY --from=builder /app/bin/app .
+# Copy the pre-built binary files from the previous stage
+COPY --from=builder /app/bin/api .
+COPY --from=builder /app/bin/consumer .
 
 # Expose port 8080 to the outside world
 EXPOSE 8080
 
-# Command to run the executable
-CMD ["./app"]
+# Command to run the executable is managed by docker-compose

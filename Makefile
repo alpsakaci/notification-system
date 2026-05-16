@@ -3,10 +3,11 @@
 # Default target
 all: fmt swag build
 
-# Build the application
+# Build the applications
 build:
-	@echo "Building the application..."
-	@go build -o bin/app main.go
+	@echo "Building API and Consumer applications..."
+	@go build -o bin/api cmd/api/main.go
+	@go build -o bin/consumer cmd/consumer/main.go
 
 # Run the application
 run: fmt swag
@@ -26,7 +27,7 @@ fmt:
 # Generate swagger documentation
 swag:
 	@echo "Generating Swagger documentation..."
-	@swag init
+	@swag init -d cmd/api,internal -g main.go
 
 # Clean build artifacts
 clean:
