@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -195,6 +196,8 @@ func (h *NotificationHandler) Cancel(c *gin.Context) {
 // @Produce      json
 // @Param        status query string false "Filter by status"
 // @Param        channel query string false "Filter by channel"
+// @Param        start_date query string false "Filter by start date (RFC3339)"
+// @Param        end_date query string false "Filter by end date (RFC3339)"
 // @Param        limit query int false "Limit"
 // @Param        offset query int false "Offset"
 // @Success      200  {array}  notification.Notification
@@ -215,8 +218,31 @@ func (h *NotificationHandler) List(c *gin.Context) {
 		filter.Channel = &ch
 	}
 
-	// In a real app, parse limit and offset properly from string to int
-	// ...
+	startDate := c.Query("start_date")
+	if startDate != "" {
+		filter.StartDate = &startDate
+	}
+
+	endDate := c.Query("end_date")
+	if endDate != "" {
+		filter.EndDate = &endDate
+	}
+
+	limitStr := c.Query("limit")
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			filter.Limit = l
+		}
+	} else {
+		filter.Limit = 50 // default limit
+	}
+
+	offsetStr := c.Query("offset")
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			filter.Offset = o
+		}
+	}
 
 	q := query.ListNotificationsQuery{Filter: filter}
 	results, err := h.listQry.Handle(c.Request.Context(), q)

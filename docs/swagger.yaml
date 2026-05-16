@@ -5,6 +5,7 @@ definitions:
       notifications:
         items:
           $ref: '#/definitions/handler.CreateRequest'
+        maxItems: 1000
         type: array
     required:
     - notifications
@@ -124,6 +125,14 @@ paths:
       - description: Filter by channel
         in: query
         name: channel
+        type: string
+      - description: Filter by start date (RFC3339)
+        in: query
+        name: start_date
+        type: string
+      - description: Filter by end date (RFC3339)
+        in: query
+        name: end_date
         type: string
       - description: Limit
         in: query

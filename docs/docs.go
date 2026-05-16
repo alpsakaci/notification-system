@@ -62,6 +62,18 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "type": "string",
+                        "description": "Filter by start date (RFC3339)",
+                        "name": "start_date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by end date (RFC3339)",
+                        "name": "end_date",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Limit",
                         "name": "limit",
@@ -227,6 +239,7 @@ const docTemplate = `{
             "properties": {
                 "notifications": {
                     "type": "array",
+                    "maxItems": 1000,
                     "items": {
                         "$ref": "#/definitions/handler.CreateRequest"
                     }
