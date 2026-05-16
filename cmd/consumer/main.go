@@ -33,7 +33,7 @@ func main() {
 	// Change host to postgres if running inside docker-compose
 	db, err := database.NewPostgresDB(dsn)
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	repo := database.NewNotificationRepository(db)
 

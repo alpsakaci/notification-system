@@ -18,9 +18,11 @@ type KafkaConsumer struct {
 // NewKafkaConsumer initializes a new Kafka consumer for a specific topic.
 func NewKafkaConsumer(brokers []string, groupID string, topic string) *KafkaConsumer {
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers: brokers,
-		GroupID: groupID,
-		Topic:   topic,
+		Brokers:     brokers,
+		GroupID:     groupID,
+		Topic:       topic,
+		Logger:      kafka.LoggerFunc(log.Printf),
+		ErrorLogger: kafka.LoggerFunc(log.Printf),
 	})
 	return &KafkaConsumer{reader: r}
 }

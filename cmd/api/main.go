@@ -40,8 +40,7 @@ func main() {
 	// Change host to postgres if running inside docker-compose
 	db, err := database.NewPostgresDB(dsn)
 	if err != nil {
-		log.Printf("Failed to connect to database: %v", err)
-		// We log instead of fatal for now so the app can start even if DB is down locally, though usually you want to crash here.
+		log.Fatalf("Failed to connect to database: %v", err)
 	} else {
 		// Run migrations
 		if err := database.Migrate(db); err != nil {
