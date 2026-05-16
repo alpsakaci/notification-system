@@ -6,7 +6,7 @@ all: fmt swag build
 # Build the application
 build:
 	@echo "Building the application..."
-	@go build -o bin/api main.go
+	@go build -o bin/app main.go
 
 # Run the application
 run: fmt swag
