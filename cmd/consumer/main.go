@@ -25,7 +25,11 @@ func main() {
 	slog.Info("Notification Consumer starting...")
 
 	// Initialize Database (Use environment variables in a real app)
-	dsn := "host=localhost user=postgres password=postgres dbname=notification_db port=5432 sslmode=disable TimeZone=UTC"
+	dbHost := os.Getenv("DB_HOST")
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
+	dsn := "host=" + dbHost + " user=postgres password=postgres dbname=notification_db port=5432 sslmode=disable TimeZone=UTC"
 	// Change host to postgres if running inside docker-compose
 	db, err := database.NewPostgresDB(dsn)
 	if err != nil {
@@ -34,7 +38,11 @@ func main() {
 	repo := database.NewNotificationRepository(db)
 
 	// Initialize Redis
-	redisClient, err := cache.NewRedisClient("localhost:6379")
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		redisHost = "localhost:6379"
+	}
+	redisClient, err := cache.NewRedisClient(redisHost)
 	if err != nil {
 		log.Printf("Failed to connect to Redis: %v", err)
 	}
@@ -49,7 +57,11 @@ func main() {
 	worker := consumer.NewWorker(repo, redisClient, webhookURL)
 
 	// Initialize Kafka Consumers for the priority topics
-	brokers := []string{"localhost:9092"}
+	kafkaHost := os.Getenv("KAFKA_HOST")
+	if kafkaHost == "" {
+		kafkaHost = "localhost:9092"
+	}
+	brokers := []string{kafkaHost}
 	// Change to kafka:9092 if running inside docker-compose
 	groupID := "notification-workers"
 	topics := []string{"notifications.high", "notifications.normal", "notifications.low"}

@@ -14,6 +14,7 @@ import (
 	_ "notification-system/docs"
 	"notification-system/internal/application/command"
 	"notification-system/internal/application/query"
+	"notification-system/internal/infrastructure/cache"
 	"notification-system/internal/infrastructure/database"
 	"notification-system/internal/infrastructure/messaging"
 	"notification-system/internal/router/api/handler"
@@ -31,7 +32,11 @@ func main() {
 	slog.SetDefault(logger)
 
 	// Initialize Database (Use environment variables in a real app)
-	dsn := "host=localhost user=postgres password=postgres dbname=notification_db port=5432 sslmode=disable TimeZone=UTC"
+	dbHost := os.Getenv("DB_HOST")
+	if dbHost == "" {
+		dbHost = "localhost"
+	}
+	dsn := "host=" + dbHost + " user=postgres password=postgres dbname=notification_db port=5432 sslmode=disable TimeZone=UTC"
 	// Change host to postgres if running inside docker-compose
 	db, err := database.NewPostgresDB(dsn)
 	if err != nil {
@@ -42,11 +47,24 @@ func main() {
 		if err := database.Migrate(db); err != nil {
 			log.Fatalf("Migration failed: %v", err)
 		}
-		handler.HealthDB = db
+	}
+
+	// Initialize Redis
+	redisHost := os.Getenv("REDIS_HOST")
+	if redisHost == "" {
+		redisHost = "localhost:6379"
+	}
+	redisClient, err := cache.NewRedisClient(redisHost)
+	if err != nil {
+		log.Printf("Failed to connect to Redis: %v", err)
 	}
 
 	// Initialize Kafka Producer
-	producer := messaging.NewKafkaProducer([]string{"localhost:9092"})
+	kafkaHost := os.Getenv("KAFKA_HOST")
+	if kafkaHost == "" {
+		kafkaHost = "localhost:9092"
+	}
+	producer := messaging.NewKafkaProducer([]string{kafkaHost})
 	// Change host to kafka if running inside docker-compose
 	defer producer.Close()
 
@@ -61,6 +79,7 @@ func main() {
 
 	// Initialize HTTP Handlers
 	notiHandler := handler.NewNotificationHandler(createCmd, cancelCmd, getQry, listQry)
+	healthHandler := handler.NewHealthHandler(db, redisClient)
 
 	r := gin.Default()
 
@@ -78,7 +97,7 @@ func main() {
 	// API routes group
 	v1 := r.Group("/api/v1")
 	{
-		v1.GET("/health", handler.Health)
+		v1.GET("/health", healthHandler.Health)
 
 		// Notification routes
 		v1.POST("/notifications", notiHandler.Create)
