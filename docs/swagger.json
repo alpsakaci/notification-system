@@ -1,7 +1,7 @@
 {
     "swagger": "2.0",
     "info": {
-        "description": "This is a sample server for a notification system.",
+        "description": "This is a scalable server for a notification system.",
         "title": "Notification System API",
         "contact": {},
         "version": "1.0"
@@ -32,6 +32,253 @@
                     }
                 }
             }
+        },
+        "/api/v1/notifications": {
+            "get": {
+                "description": "Retrieve a list of notifications with filtering and pagination.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "List notifications",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by status",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by channel",
+                        "name": "channel",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/notification.Notification"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a single notification and queue it for processing.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Create a notification",
+                "parameters": [
+                    {
+                        "description": "Notification details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.CreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/notification.Notification"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/notifications/{id}": {
+            "get": {
+                "description": "Retrieve notification details by ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Get a notification",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Notification ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/notification.Notification"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/notifications/{id}/cancel": {
+            "put": {
+                "description": "Cancel a pending notification.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Cancel a notification",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Notification ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handler.CreateRequest": {
+            "type": "object",
+            "required": [
+                "channel",
+                "content",
+                "priority",
+                "recipient"
+            ],
+            "properties": {
+                "batchId": {
+                    "type": "string"
+                },
+                "channel": {
+                    "type": "string"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "string"
+                },
+                "recipient": {
+                    "type": "string"
+                }
+            }
+        },
+        "notification.Channel": {
+            "type": "string",
+            "enum": [
+                "sms",
+                "email",
+                "push"
+            ],
+            "x-enum-varnames": [
+                "ChannelSMS",
+                "ChannelEmail",
+                "ChannelPush"
+            ]
+        },
+        "notification.Notification": {
+            "type": "object",
+            "properties": {
+                "batchID": {
+                    "type": "string"
+                },
+                "channel": {
+                    "$ref": "#/definitions/notification.Channel"
+                },
+                "content": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "priority": {
+                    "$ref": "#/definitions/notification.Priority"
+                },
+                "recipient": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/notification.Status"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "notification.Priority": {
+            "type": "string",
+            "enum": [
+                "high",
+                "normal",
+                "low"
+            ],
+            "x-enum-varnames": [
+                "PriorityHigh",
+                "PriorityNormal",
+                "PriorityLow"
+            ]
+        },
+        "notification.Status": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "processing",
+                "sent",
+                "failed",
+                "canceled",
+                "retry"
+            ],
+            "x-enum-varnames": [
+                "StatusPending",
+                "StatusProcessing",
+                "StatusSent",
+                "StatusFailed",
+                "StatusCanceled",
+                "StatusRetry"
+            ]
         }
     }
 }

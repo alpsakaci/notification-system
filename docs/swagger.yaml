@@ -1,8 +1,84 @@
 basePath: /
+definitions:
+  handler.CreateRequest:
+    properties:
+      batchId:
+        type: string
+      channel:
+        type: string
+      content:
+        type: string
+      priority:
+        type: string
+      recipient:
+        type: string
+    required:
+    - channel
+    - content
+    - priority
+    - recipient
+    type: object
+  notification.Channel:
+    enum:
+    - sms
+    - email
+    - push
+    type: string
+    x-enum-varnames:
+    - ChannelSMS
+    - ChannelEmail
+    - ChannelPush
+  notification.Notification:
+    properties:
+      batchID:
+        type: string
+      channel:
+        $ref: '#/definitions/notification.Channel'
+      content:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      priority:
+        $ref: '#/definitions/notification.Priority'
+      recipient:
+        type: string
+      status:
+        $ref: '#/definitions/notification.Status'
+      updatedAt:
+        type: string
+    type: object
+  notification.Priority:
+    enum:
+    - high
+    - normal
+    - low
+    type: string
+    x-enum-varnames:
+    - PriorityHigh
+    - PriorityNormal
+    - PriorityLow
+  notification.Status:
+    enum:
+    - pending
+    - processing
+    - sent
+    - failed
+    - canceled
+    - retry
+    type: string
+    x-enum-varnames:
+    - StatusPending
+    - StatusProcessing
+    - StatusSent
+    - StatusFailed
+    - StatusCanceled
+    - StatusRetry
 host: localhost:8080
 info:
   contact: {}
-  description: This is a sample server for a notification system.
+  description: This is a scalable server for a notification system.
   title: Notification System API
   version: "1.0"
 paths:
@@ -22,4 +98,97 @@ paths:
       summary: System health check
       tags:
       - system
+  /api/v1/notifications:
+    get:
+      description: Retrieve a list of notifications with filtering and pagination.
+      parameters:
+      - description: Filter by status
+        in: query
+        name: status
+        type: string
+      - description: Filter by channel
+        in: query
+        name: channel
+        type: string
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      - description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/notification.Notification'
+            type: array
+      summary: List notifications
+      tags:
+      - notifications
+    post:
+      consumes:
+      - application/json
+      description: Create a single notification and queue it for processing.
+      parameters:
+      - description: Notification details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/notification.Notification'
+      summary: Create a notification
+      tags:
+      - notifications
+  /api/v1/notifications/{id}:
+    get:
+      description: Retrieve notification details by ID.
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/notification.Notification'
+      summary: Get a notification
+      tags:
+      - notifications
+  /api/v1/notifications/{id}/cancel:
+    put:
+      description: Cancel a pending notification.
+      parameters:
+      - description: Notification ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Cancel a notification
+      tags:
+      - notifications
 swagger: "2.0"
