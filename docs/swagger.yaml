@@ -92,7 +92,6 @@ definitions:
     - StatusFailed
     - StatusCanceled
     - StatusRetry
-host: localhost:8080
 info:
   contact: {}
   description: This is a scalable server for a notification system.

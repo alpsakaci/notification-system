@@ -24,7 +24,6 @@ import (
 // @title           Notification System API
 // @version         1.0
 // @description     This is a scalable server for a notification system.
-// @host            localhost:8080
 // @BasePath        /
 
 func main() {
