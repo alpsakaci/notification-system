@@ -12,6 +12,7 @@ import (
 // EventProducer defines the interface for producing notification events.
 type EventProducer interface {
 	Publish(ctx context.Context, n *notification.Notification) error
+	PublishBatch(ctx context.Context, ns []*notification.Notification) error
 }
 
 type CreateNotificationCommand struct {
@@ -19,7 +20,6 @@ type CreateNotificationCommand struct {
 	Channel   string
 	Content   string
 	Priority  string
-	BatchID   *string
 }
 
 type CreateNotificationHandler struct {
@@ -43,7 +43,7 @@ func (h *CreateNotificationHandler) Handle(ctx context.Context, cmd CreateNotifi
 		notification.Channel(cmd.Channel),
 		cmd.Content,
 		notification.Priority(cmd.Priority),
-		cmd.BatchID,
+		nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("invalid notification data: %w", err)

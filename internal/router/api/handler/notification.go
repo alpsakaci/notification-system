@@ -15,6 +15,7 @@ type NotificationHandler struct {
 	cancelCmd *command.CancelNotificationHandler
 	getQry    *query.GetNotificationHandler
 	listQry   *query.ListNotificationsHandler
+	batchCmd  *command.BatchCreateNotificationHandler
 }
 
 // NewNotificationHandler creates a new HTTP handler for notifications.
@@ -23,22 +24,28 @@ func NewNotificationHandler(
 	cancelCmd *command.CancelNotificationHandler,
 	getQry *query.GetNotificationHandler,
 	listQry *query.ListNotificationsHandler,
+	batchCmd *command.BatchCreateNotificationHandler,
 ) *NotificationHandler {
 	return &NotificationHandler{
 		createCmd: createCmd,
 		cancelCmd: cancelCmd,
 		getQry:    getQry,
 		listQry:   listQry,
+		batchCmd:  batchCmd,
 	}
 }
 
 // CreateRequest represents the incoming JSON for a notification.
 type CreateRequest struct {
-	Recipient string  `json:"recipient" binding:"required"`
-	Channel   string  `json:"channel" binding:"required"`
-	Content   string  `json:"content" binding:"required"`
-	Priority  string  `json:"priority" binding:"required"`
-	BatchID   *string `json:"batchId,omitempty"`
+	Recipient string `json:"recipient" binding:"required"`
+	Channel   string `json:"channel" binding:"required"`
+	Content   string `json:"content" binding:"required"`
+	Priority  string `json:"priority" binding:"required"`
+}
+
+// BatchCreateRequest represents the incoming JSON for a batch of notifications.
+type BatchCreateRequest struct {
+	Notifications []CreateRequest `json:"notifications" binding:"required,dive"`
 }
 
 // Create godoc
@@ -62,7 +69,6 @@ func (h *NotificationHandler) Create(c *gin.Context) {
 		Channel:   req.Channel,
 		Content:   req.Content,
 		Priority:  req.Priority,
-		BatchID:   req.BatchID,
 	}
 
 	n, err := h.createCmd.Handle(c.Request.Context(), cmd)
@@ -72,6 +78,45 @@ func (h *NotificationHandler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, n)
+}
+
+// BatchCreate godoc
+// @Summary      Create a batch of notifications
+// @Description  Create multiple notifications under a single auto-generated batch ID and queue them for processing.
+// @Tags         notifications
+// @Accept       json
+// @Produce      json
+// @Param        request body BatchCreateRequest true "Batch notification details"
+// @Success      201  {array}  notification.Notification
+// @Router       /api/v1/notifications/batch [post]
+func (h *NotificationHandler) BatchCreate(c *gin.Context) {
+	var req BatchCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	var items []command.CreateNotificationCommand
+	for _, nr := range req.Notifications {
+		items = append(items, command.CreateNotificationCommand{
+			Recipient: nr.Recipient,
+			Channel:   nr.Channel,
+			Content:   nr.Content,
+			Priority:  nr.Priority,
+		})
+	}
+
+	cmd := command.BatchCreateNotificationCommand{
+		Items: items,
+	}
+
+	ns, err := h.batchCmd.Handle(c.Request.Context(), cmd)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, ns)
 }
 
 // Get godoc

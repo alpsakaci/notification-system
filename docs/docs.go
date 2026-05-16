@@ -17,23 +17,22 @@ const docTemplate = `{
     "paths": {
         "/api/v1/health": {
             "get": {
-                "description": "Returns the health status of the system.",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Check the health of the application and its dependencies",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "system"
+                    "health"
                 ],
-                "summary": "System health check",
+                "summary": "Health Check",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "object",
-                            "additionalProperties": true
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -120,6 +119,43 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/notifications/batch": {
+            "post": {
+                "description": "Create multiple notifications under a single auto-generated batch ID and queue them for processing.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "notifications"
+                ],
+                "summary": "Create a batch of notifications",
+                "parameters": [
+                    {
+                        "description": "Batch notification details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.BatchCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/notification.Notification"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/notifications/{id}": {
             "get": {
                 "description": "Retrieve notification details by ID.",
@@ -183,6 +219,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "handler.BatchCreateRequest": {
+            "type": "object",
+            "required": [
+                "notifications"
+            ],
+            "properties": {
+                "notifications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.CreateRequest"
+                    }
+                }
+            }
+        },
         "handler.CreateRequest": {
             "type": "object",
             "required": [
@@ -192,9 +242,6 @@ const docTemplate = `{
                 "recipient"
             ],
             "properties": {
-                "batchId": {
-                    "type": "string"
-                },
                 "channel": {
                     "type": "string"
                 },

@@ -1,9 +1,16 @@
 basePath: /
 definitions:
+  handler.BatchCreateRequest:
+    properties:
+      notifications:
+        items:
+          $ref: '#/definitions/handler.CreateRequest'
+        type: array
+    required:
+    - notifications
+    type: object
   handler.CreateRequest:
     properties:
-      batchId:
-        type: string
       channel:
         type: string
       content:
@@ -84,20 +91,19 @@ info:
 paths:
   /api/v1/health:
     get:
-      consumes:
-      - application/json
-      description: Returns the health status of the system.
+      description: Check the health of the application and its dependencies
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            additionalProperties: true
+            additionalProperties:
+              type: string
             type: object
-      summary: System health check
+      summary: Health Check
       tags:
-      - system
+      - health
   /api/v1/notifications:
     get:
       description: Retrieve a list of notifications with filtering and pagination.
@@ -189,6 +195,31 @@ paths:
               type: string
             type: object
       summary: Cancel a notification
+      tags:
+      - notifications
+  /api/v1/notifications/batch:
+    post:
+      consumes:
+      - application/json
+      description: Create multiple notifications under a single auto-generated batch
+        ID and queue them for processing.
+      parameters:
+      - description: Batch notification details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.BatchCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            items:
+              $ref: '#/definitions/notification.Notification'
+            type: array
+      summary: Create a batch of notifications
       tags:
       - notifications
 swagger: "2.0"

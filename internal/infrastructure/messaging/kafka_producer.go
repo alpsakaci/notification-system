@@ -69,6 +69,52 @@ func (p *KafkaProducer) Publish(ctx context.Context, n *notification.Notificatio
 	return nil
 }
 
+// PublishBatch routes multiple notifications to their correct topics based on priority and publishes them as a batch.
+func (p *KafkaProducer) PublishBatch(ctx context.Context, ns []*notification.Notification) error {
+	if len(ns) == 0 {
+		return nil
+	}
+
+	var msgs []kafka.Message
+
+	for _, n := range ns {
+		var topic string
+		switch n.Priority {
+		case notification.PriorityHigh:
+			topic = "notifications.high"
+		case notification.PriorityLow:
+			topic = "notifications.low"
+		default:
+			topic = "notifications.normal"
+		}
+
+		event := NotificationEvent{
+			ID:        n.ID,
+			Priority:  string(n.Priority),
+			Timestamp: n.CreatedAt.Format(time.RFC3339),
+		}
+
+		payload, err := json.Marshal(event)
+		if err != nil {
+			return fmt.Errorf("failed to marshal event for notification %s: %w", n.ID, err)
+		}
+
+		msgs = append(msgs, kafka.Message{
+			Topic: topic,
+			Key:   []byte(n.ID), // Use ID as partition key
+			Value: payload,
+		})
+	}
+
+	for _, msg := range msgs {
+		if err := p.writer.WriteMessages(ctx, msg); err != nil {
+			return fmt.Errorf("failed to publish message to topic %s: %w", msg.Topic, err)
+		}
+	}
+
+	return nil
+}
+
 // Close gracefully shuts down the Kafka writer.
 func (p *KafkaProducer) Close() error {
 	return p.writer.Close()

@@ -73,12 +73,13 @@ func main() {
 
 	// Initialize Application Logic Handlers
 	createCmd := command.NewCreateNotificationHandler(repo, producer)
+	batchCmd := command.NewBatchCreateNotificationHandler(repo, producer)
 	cancelCmd := command.NewCancelNotificationHandler(repo)
 	getQry := query.NewGetNotificationHandler(repo)
 	listQry := query.NewListNotificationsHandler(repo)
 
 	// Initialize HTTP Handlers
-	notiHandler := handler.NewNotificationHandler(createCmd, cancelCmd, getQry, listQry)
+	notiHandler := handler.NewNotificationHandler(createCmd, cancelCmd, getQry, listQry, batchCmd)
 	healthHandler := handler.NewHealthHandler(db, redisClient)
 
 	r := gin.Default()
@@ -101,6 +102,7 @@ func main() {
 
 		// Notification routes
 		v1.POST("/notifications", notiHandler.Create)
+		v1.POST("/notifications/batch", notiHandler.BatchCreate)
 		v1.GET("/notifications/:id", notiHandler.Get)
 		v1.PUT("/notifications/:id/cancel", notiHandler.Cancel)
 		v1.GET("/notifications", notiHandler.List)
