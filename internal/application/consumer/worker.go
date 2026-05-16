@@ -10,22 +10,27 @@ import (
 	"time"
 
 	"notification-system/internal/domain/notification"
-	"notification-system/internal/infrastructure/cache"
 	"notification-system/internal/infrastructure/messaging"
 	"notification-system/internal/infrastructure/observability"
 )
 
+// CacheClient abstracts the caching mechanisms for idempotency and rate limiting.
+type CacheClient interface {
+	SetIdempotencyKey(ctx context.Context, id string) (bool, error)
+	AllowRateLimit(ctx context.Context, channel string, max int64) (bool, error)
+}
+
 type Worker struct {
 	repo       notification.Repository
-	redis      *cache.RedisClient
+	cache      CacheClient
 	webhookURL string
 	httpClient *http.Client
 }
 
-func NewWorker(repo notification.Repository, redisClient *cache.RedisClient, webhookURL string) *Worker {
+func NewWorker(repo notification.Repository, cacheClient CacheClient, webhookURL string) *Worker {
 	return &Worker{
 		repo:       repo,
-		redis:      redisClient,
+		cache:      cacheClient,
 		webhookURL: webhookURL,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
@@ -44,7 +49,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg []byte) error {
 	logger := slog.With("notification_id", event.ID, "priority", event.Priority)
 
 	// 1. Check Idempotency
-	isNew, err := w.redis.SetIdempotencyKey(ctx, event.ID)
+	isNew, err := w.cache.SetIdempotencyKey(ctx, event.ID)
 	if err != nil {
 		logger.Error("Failed to check idempotency", "error", err)
 		return fmt.Errorf("failed to check idempotency: %w", err)
@@ -72,7 +77,7 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg []byte) error {
 	}
 
 	// 3. Rate Limiting Check
-	allowed, err := w.redis.AllowRateLimit(ctx, string(n.Channel), 100)
+	allowed, err := w.cache.AllowRateLimit(ctx, string(n.Channel), 100)
 	if err != nil {
 		logger.Error("Failed to check rate limit", "error", err)
 		return fmt.Errorf("failed to check rate limit: %w", err)
