@@ -110,10 +110,10 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/notification.Notification"
+                            "$ref": "#/definitions/handler.CreateResponse"
                         }
                     }
                 }
@@ -144,12 +144,12 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/notification.Notification"
+                                "$ref": "#/definitions/handler.CreateResponse"
                             }
                         }
                     }
@@ -256,6 +256,20 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.CreateResponse": {
+            "type": "object",
+            "properties": {
+                "messageId": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
         "notification.Channel": {
             "type": "string",
             "enum": [
@@ -346,6 +360,8 @@ var SwaggerInfo = &swag.Spec{
 	Description:      "This is a scalable server for a notification system.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
+	LeftDelim:        "{{",
+	RightDelim:       "}}",
 }
 
 func init() {

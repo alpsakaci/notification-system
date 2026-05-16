@@ -48,6 +48,13 @@ type BatchCreateRequest struct {
 	Notifications []CreateRequest `json:"notifications" binding:"required,dive"`
 }
 
+// CreateResponse represents the response returned upon successful creation.
+type CreateResponse struct {
+	MessageID string `json:"messageId"`
+	Status    string `json:"status"`
+	Timestamp string `json:"timestamp"`
+}
+
 // Create godoc
 // @Summary      Create a notification
 // @Description  Create a single notification and queue it for processing.
@@ -55,7 +62,7 @@ type BatchCreateRequest struct {
 // @Accept       json
 // @Produce      json
 // @Param        request body CreateRequest true "Notification details"
-// @Success      201  {object}  notification.Notification
+// @Success      202  {object}  CreateResponse
 // @Router       /api/v1/notifications [post]
 func (h *NotificationHandler) Create(c *gin.Context) {
 	var req CreateRequest
@@ -77,7 +84,13 @@ func (h *NotificationHandler) Create(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, n)
+	resp := CreateResponse{
+		MessageID: n.ID,
+		Status:    "accepted",
+		Timestamp: n.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+	}
+
+	c.JSON(http.StatusAccepted, resp)
 }
 
 // BatchCreate godoc
@@ -87,7 +100,7 @@ func (h *NotificationHandler) Create(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        request body BatchCreateRequest true "Batch notification details"
-// @Success      201  {array}  notification.Notification
+// @Success      202  {array}  CreateResponse
 // @Router       /api/v1/notifications/batch [post]
 func (h *NotificationHandler) BatchCreate(c *gin.Context) {
 	var req BatchCreateRequest
@@ -116,7 +129,16 @@ func (h *NotificationHandler) BatchCreate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, ns)
+	var resp []CreateResponse
+	for _, n := range ns {
+		resp = append(resp, CreateResponse{
+			MessageID: n.ID,
+			Status:    "accepted",
+			Timestamp: n.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
+	}
+
+	c.JSON(http.StatusAccepted, resp)
 }
 
 // Get godoc

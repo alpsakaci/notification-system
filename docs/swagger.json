@@ -104,10 +104,10 @@
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/notification.Notification"
+                            "$ref": "#/definitions/handler.CreateResponse"
                         }
                     }
                 }
@@ -138,12 +138,12 @@
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "202": {
+                        "description": "Accepted",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/notification.Notification"
+                                "$ref": "#/definitions/handler.CreateResponse"
                             }
                         }
                     }
@@ -246,6 +246,20 @@
                     "type": "string"
                 },
                 "recipient": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.CreateResponse": {
+            "type": "object",
+            "properties": {
+                "messageId": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "timestamp": {
                     "type": "string"
                 }
             }

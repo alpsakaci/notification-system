@@ -25,6 +25,15 @@ definitions:
     - priority
     - recipient
     type: object
+  handler.CreateResponse:
+    properties:
+      messageId:
+        type: string
+      status:
+        type: string
+      timestamp:
+        type: string
+    type: object
   notification.Channel:
     enum:
     - sms
@@ -150,10 +159,10 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "202":
+          description: Accepted
           schema:
-            $ref: '#/definitions/notification.Notification'
+            $ref: '#/definitions/handler.CreateResponse'
       summary: Create a notification
       tags:
       - notifications
@@ -213,11 +222,11 @@ paths:
       produces:
       - application/json
       responses:
-        "201":
-          description: Created
+        "202":
+          description: Accepted
           schema:
             items:
-              $ref: '#/definitions/notification.Notification'
+              $ref: '#/definitions/handler.CreateResponse'
             type: array
       summary: Create a batch of notifications
       tags:
