@@ -1,5 +1,5 @@
 # Stage 1: Build the application
-FROM golang:1.23.2-alpine AS builder
+FROM golang:alpine AS builder
 
 # Install necessary build tools
 RUN apk add --no-cache git make
