@@ -45,7 +45,7 @@ type CreateRequest struct {
 
 // BatchCreateRequest represents the incoming JSON for a batch of notifications.
 type BatchCreateRequest struct {
-	Notifications []CreateRequest `json:"notifications" binding:"required,dive"`
+	Notifications []CreateRequest `json:"notifications" binding:"required,max=1000,dive"`
 }
 
 // CreateResponse represents the response returned upon successful creation.
@@ -106,6 +106,11 @@ func (h *NotificationHandler) BatchCreate(c *gin.Context) {
 	var req BatchCreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if len(req.Notifications) > 1000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "maximum 1000 notifications allowed per batch"})
 		return
 	}
 
