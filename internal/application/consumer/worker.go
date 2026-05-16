@@ -20,17 +20,24 @@ type CacheClient interface {
 	AllowRateLimit(ctx context.Context, channel string, max int64) (bool, error)
 }
 
+// RetryPublisher abstracts the mechanism to publish messages to a retry topic.
+type RetryPublisher interface {
+	PublishRetry(ctx context.Context, event messaging.NotificationEvent) error
+}
+
 type Worker struct {
 	repo       notification.Repository
 	cache      CacheClient
+	publisher  RetryPublisher
 	webhookURL string
 	httpClient *http.Client
 }
 
-func NewWorker(repo notification.Repository, cacheClient CacheClient, webhookURL string) *Worker {
+func NewWorker(repo notification.Repository, cacheClient CacheClient, publisher RetryPublisher, webhookURL string) *Worker {
 	return &Worker{
 		repo:       repo,
 		cache:      cacheClient,
+		publisher:  publisher,
 		webhookURL: webhookURL,
 		httpClient: &http.Client{Timeout: 5 * time.Second},
 	}
@@ -48,14 +55,15 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg []byte) error {
 	// For structured logging, we attach the event ID
 	logger := slog.With("notification_id", event.ID, "priority", event.Priority)
 
-	// 1. Check Idempotency
-	isNew, err := w.cache.SetIdempotencyKey(ctx, event.ID)
+	// 1. Check Idempotency - append RetryCount to ensure retries are processed
+	idempotencyKey := fmt.Sprintf("%s-%d", event.ID, event.RetryCount)
+	isNew, err := w.cache.SetIdempotencyKey(ctx, idempotencyKey)
 	if err != nil {
 		logger.Error("Failed to check idempotency", "error", err)
 		return fmt.Errorf("failed to check idempotency: %w", err)
 	}
 	if !isNew {
-		logger.Info("Notification was already processed, skipping")
+		logger.Info("Notification was already processed for this retry count, skipping")
 		return nil
 	}
 
@@ -128,9 +136,20 @@ func (w *Worker) ProcessMessage(ctx context.Context, msg []byte) error {
 		logger.Info("Notification delivered successfully")
 		observability.NotificationsProcessed.WithLabelValues(string(n.Channel), "success").Inc()
 	} else {
-		n.Status = notification.StatusFailed
-		logger.Error("Notification delivery failed after retries", "max_retries", maxRetries)
-		observability.NotificationsProcessed.WithLabelValues(string(n.Channel), "failed").Inc()
+		// Delivery failed completely after in-memory retries.
+		if event.RetryCount < 3 {
+			logger.Warn("Notification delivery failed, sending to retry topic", "retry_count", event.RetryCount)
+			event.RetryCount++
+			if err := w.publisher.PublishRetry(ctx, event); err != nil {
+				logger.Error("Failed to publish to retry topic", "error", err)
+			}
+			// Keep status as processing or retry
+			n.Status = notification.StatusRetry
+		} else {
+			n.Status = notification.StatusFailed
+			logger.Error("Notification delivery failed permanently after max retries", "max_retries", event.RetryCount)
+			observability.NotificationsProcessed.WithLabelValues(string(n.Channel), "failed").Inc()
+		}
 	}
 
 	if err := w.repo.Update(ctx, n); err != nil {

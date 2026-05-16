@@ -13,9 +13,10 @@ import (
 
 // NotificationEvent defines the message structure published to Kafka.
 type NotificationEvent struct {
-	ID        string `json:"id"`
-	Priority  string `json:"priority"`
-	Timestamp string `json:"timestamp"`
+	ID         string `json:"id"`
+	Priority   string `json:"priority"`
+	Timestamp  string `json:"timestamp"`
+	RetryCount int    `json:"retry_count"`
 }
 
 // KafkaProducer is responsible for sending messages to Kafka topics.
@@ -64,6 +65,26 @@ func (p *KafkaProducer) Publish(ctx context.Context, n *notification.Notificatio
 
 	if err := p.writer.WriteMessages(ctx, msg); err != nil {
 		return fmt.Errorf("failed to publish message to topic %s: %w", topic, err)
+	}
+
+	return nil
+}
+
+// PublishRetry publishes an event to the retry topic.
+func (p *KafkaProducer) PublishRetry(ctx context.Context, event NotificationEvent) error {
+	payload, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal retry event: %w", err)
+	}
+
+	msg := kafka.Message{
+		Topic: "notifications.retry",
+		Key:   []byte(event.ID),
+		Value: payload,
+	}
+
+	if err := p.writer.WriteMessages(ctx, msg); err != nil {
+		return fmt.Errorf("failed to publish to retry topic: %w", err)
 	}
 
 	return nil

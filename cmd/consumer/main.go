@@ -53,18 +53,20 @@ func main() {
 		webhookURL = "https://webhook.site/placeholder-uuid" // Should be replaced with actual UUID provided by user
 	}
 
-	// Initialize Worker
-	worker := consumer.NewWorker(repo, redisClient, webhookURL)
-
-	// Initialize Kafka Consumers for the priority topics
+	// Initialize Kafka Producer for Retries
 	kafkaHost := os.Getenv("KAFKA_HOST")
 	if kafkaHost == "" {
 		kafkaHost = "localhost:9092"
 	}
 	brokers := []string{kafkaHost}
+	publisher := messaging.NewKafkaProducer(brokers)
+
+	// Initialize Worker
+	worker := consumer.NewWorker(repo, redisClient, publisher, webhookURL)
+
 	// Change to kafka:9092 if running inside docker-compose
 	groupID := "notification-workers"
-	topics := []string{"notifications.high", "notifications.normal", "notifications.low"}
+	topics := []string{"notifications.high", "notifications.normal", "notifications.low", "notifications.retry"}
 	
 	var consumers []*messaging.KafkaConsumer
 	ctx, cancel := context.WithCancel(context.Background())
@@ -103,5 +105,6 @@ func main() {
 	for _, c := range consumers {
 		_ = c.Close()
 	}
+	_ = publisher.Close()
 	slog.Info("Shutdown complete")
 }
