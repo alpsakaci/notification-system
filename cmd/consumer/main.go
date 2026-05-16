@@ -59,6 +59,10 @@ func main() {
 		kafkaHost = "localhost:9092"
 	}
 	brokers := []string{kafkaHost}
+
+	// Initialize Topics if they don't exist
+	messaging.InitTopics(brokers)
+
 	publisher := messaging.NewKafkaProducer(brokers)
 
 	// Initialize Worker

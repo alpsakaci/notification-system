@@ -32,7 +32,7 @@ services:
       - DB_HOST=postgres
       - KAFKA_HOST=kafka:29092
       - REDIS_HOST=redis:6379
-      - WEBHOOK_URL=https://webhook.site/7a7d1122-da98-4a46-8442-395765ecf32f
+      - WEBHOOK_URL=https://webhook.site/6762e0e1-47a2-492d-855e-fb974baca2b6
     command: ["./consumer"]
     restart: unless-stopped
     depends_on:

@@ -64,7 +64,12 @@ func main() {
 	if kafkaHost == "" {
 		kafkaHost = "localhost:9092"
 	}
-	producer := messaging.NewKafkaProducer([]string{kafkaHost})
+	brokers := []string{kafkaHost}
+
+	// Initialize Topics
+	messaging.InitTopics(brokers)
+
+	producer := messaging.NewKafkaProducer(brokers)
 	// Change host to kafka if running inside docker-compose
 	defer producer.Close()
 
