@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   api:
@@ -30,6 +30,7 @@ services:
       - DB_HOST=postgres
       - KAFKA_HOST=kafka:29092
       - REDIS_HOST=redis:6379
+      - WEBHOOK_URL=https://webhook.site/7a7d1122-da98-4a46-8442-395765ecf32f
     command: ["./consumer"]
     restart: unless-stopped
     depends_on:
