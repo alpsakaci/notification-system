@@ -15,9 +15,9 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/ping": {
+        "/api/v1/health": {
             "get": {
-                "description": "Responds with a simple message to check if the server is up and running.",
+                "description": "Returns the health status of the system.",
                 "consumes": [
                     "application/json"
                 ],
@@ -27,7 +27,7 @@ const docTemplate = `{
                 "tags": [
                     "system"
                 ],
-                "summary": "Ping the server",
+                "summary": "System health check",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -46,7 +46,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "/api/v1",
+	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Notification System API",
 	Description:      "This is a sample server for a notification system.",

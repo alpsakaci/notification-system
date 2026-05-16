@@ -1,4 +1,4 @@
-basePath: /api/v1
+basePath: /
 host: localhost:8080
 info:
   contact: {}
@@ -6,12 +6,11 @@ info:
   title: Notification System API
   version: "1.0"
 paths:
-  /ping:
+  /api/v1/health:
     get:
       consumes:
       - application/json
-      description: Responds with a simple message to check if the server is up and
-        running.
+      description: Returns the health status of the system.
       produces:
       - application/json
       responses:
@@ -20,7 +19,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Ping the server
+      summary: System health check
       tags:
       - system
 swagger: "2.0"
