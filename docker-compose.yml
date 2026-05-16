@@ -25,6 +25,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: notification_consumer
+    ports:
+      - "8082:8081"
     environment:
       - APP_ENV=development
       - DB_HOST=postgres
